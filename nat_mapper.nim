@@ -1,3 +1,3 @@
-import nat_mapper/tinyupnp
+import nat_mapper/[tinyupnp, mapping_manager]
 
-export tinyupnp
+export tinyupnp, mapping_manager

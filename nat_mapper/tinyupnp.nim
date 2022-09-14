@@ -6,6 +6,9 @@ import pkg/[
     chronicles
   ]
 
+import ./common
+export common
+
 logScope:
   topics = "tinyupnp"
 
@@ -25,7 +28,7 @@ type
   TUpnpPortMapping* = object
     externalPort*, internalPort*: int
     internalClient*: IpAddress
-    protocol*: int
+    protocol*: NatProtocolType
     description*: string
     leaseDuration*: Duration
 
@@ -47,7 +50,7 @@ proc publicIp*(sess: TUpnpSession): IpAddress =
 proc localIp*(sess: TUpnpSession): IpAddress =
   sess.gateway.localIp
 
-proc same(a, b: TUpnpPortMapping): bool =
+proc same*(a, b: TUpnpPortMapping): bool =
   a.externalPort == b.externalPort and
   a.internalPort == b.internalPort and
   a.protocol == b.protocol and
@@ -149,7 +152,7 @@ proc addPortMapping*(tupnp: TUpnpSession, mapping: TUpnpPortMapping) {.async.} =
       "NewExternalPort": $mapping.externalPort,
       "NewInternalPort": $mapping.internalPort,
       "NewInternalClient": $mapping.internalClient,
-      "NewProtocol": if mapping.protocol == 1: "TCP" else: "UDP",
+      "NewProtocol": if mapping.protocol == Tcp: "TCP" else: "UDP",
       "NewEnabled": "1",
       "NewPortMappingDescription": mapping.description,
       "NewLeaseDuration": $mapping.leaseDuration.seconds,
@@ -162,7 +165,7 @@ proc deletePortMapping*(tupnp: TUpnpSession, mapping: TUpnpPortMapping) {.async.
     {
       "NewRemoteHost": "",
       "NewExternalPort": $mapping.externalPort,
-      "NewProtocol": if mapping.protocol == 1: "TCP" else: "UDP",
+      "NewProtocol": if mapping.protocol == Tcp: "TCP" else: "UDP",
        }.toTable()
     )
 
@@ -178,7 +181,7 @@ proc getAllMappings*(tupnp: TUpnpSession): Future[seq[TUpnpPortMapping]] {.async
        externalPort: parseInt(res.response.getOrDefault("newexternalport")),
        internalPort: parseInt(res.response.getOrDefault("newinternalport")),
        internalClient: parseIpAddress(res.response.getOrDefault("newinternalclient")),
-       protocol: if res.response.getOrDefault("newinternalclient") == "TCP": 1 else: 0,
+       protocol: if res.response.getOrDefault("newinternalclient") == "TCP": Tcp else: Udp,
        description: res.response.getOrDefault("newportmappingdescription"),
        leaseDuration: parseInt(res.response.getOrDefault("newleaseduration")).seconds
     )
@@ -331,7 +334,7 @@ when isMainModule:
   waitFor(sess.setup())
   let newMapping = TUpnpPortMapping(
     externalPort: 5445, internalPort: 5445, internalClient: sess.gateway.localIp,
-    protocol: 0, description: "test binding tinyupnp", leaseDuration: 5.minutes)
+    protocol: Tcp, description: "test binding tinyupnp", leaseDuration: 5.minutes)
 
   waitFor sess.addPortMapping(newMapping)
   doAssert (waitFor sess.getAllMappings()).anyIt(it.same(newMapping))

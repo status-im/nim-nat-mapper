@@ -28,5 +28,5 @@ If upnp is enabled in your network and doesn't work with `tinyupnp`, please open
 ### TODO
 
 - [X] UPnP implementation
-- [ ] Mapping manager
+- [X] Mapping manager
 - [ ] NAT-PMP implementation
