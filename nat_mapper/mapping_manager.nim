@@ -98,6 +98,25 @@ proc addMappings*(manager: MappingManager, pms: seq[PortMapping]) {.async.} =
 proc addMapping*(manager: MappingManager, pm: PortMapping) {.async.} =
   await manager.addMappings(@[pm])
 
+proc setMappings*(manager: MappingManager, pms: seq[PortMapping]) {.async.} =
+  var
+    toAdd: seq[PortMapping]
+    toRemove: seq[PortMapping]
+
+  for pm in pms:
+    if pm notin manager.mappings:
+      toAdd.add(pm)
+
+  for pm in manager.mappings:
+    if pm notin pms:
+      toRemove.add(pm)
+
+  if toRemove.len > 0:
+    await manager.removeMappings(pms)
+
+  if toAdd.len > 0:
+    await manager.addMappings(pms)
+
 proc new*(
   T: type[MappingManager],
   frequency = 20.minutes,
@@ -111,7 +130,7 @@ proc new*(
 
 when isMainModule:
   let manager = MappingManager.new(frequency = 1.minutes)
-  waitFor manager.addMapping(PortMapping(port: 55551, protocol: Tcp))
+  waitFor manager.setMappings(@[PortMapping(port: 55551, protocol: Tcp)])
   waitFor sleepAsync(3.minutes)
   waitFor manager.removeAllMappings()
   waitFor sleepAsync(2.minutes)
