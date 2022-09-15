@@ -186,7 +186,7 @@ proc getAllMappings*(tupnp: TUpnpSession): Future[seq[TUpnpPortMapping]] {.async
        externalPort: parseInt(res.response.getOrDefault("newexternalport")),
        internalPort: parseInt(res.response.getOrDefault("newinternalport")),
        internalClient: parseIpAddress(res.response.getOrDefault("newinternalclient")),
-       protocol: if res.response.getOrDefault("newinternalclient") == "TCP": Tcp else: Udp,
+       protocol: if res.response.getOrDefault("newprotocol").toUpper() == "TCP": Tcp else: Udp,
        description: res.response.getOrDefault("newportmappingdescription"),
        leaseDuration: parseInt(res.response.getOrDefault("newleaseduration")).seconds
     )
@@ -337,10 +337,16 @@ proc check*(sess: TUpnpSession): Future[bool] {.async.} =
 when isMainModule:
   let sess = TUpnpSession.new()
   waitFor(sess.setup())
-  let newMapping = TUpnpPortMapping(
+  var newMapping = TUpnpPortMapping(
     externalPort: 5445, internalPort: 5445, internalClient: sess.gateway.localIp,
     protocol: Tcp, description: "test binding tinyupnp", leaseDuration: 5.minutes)
 
+  waitFor sess.addPortMapping(newMapping)
+  doAssert (waitFor sess.getAllMappings()).anyIt(it.same(newMapping))
+  waitFor sess.deletePortMapping(newMapping)
+  doAssert (waitFor sess.getAllMappings()).countIt(it.same(newMapping)) == 0
+
+  newMapping.protocol = Udp
   waitFor sess.addPortMapping(newMapping)
   doAssert (waitFor sess.getAllMappings()).anyIt(it.same(newMapping))
   waitFor sess.deletePortMapping(newMapping)
