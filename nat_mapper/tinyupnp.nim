@@ -9,6 +9,11 @@ import pkg/[
 import ./common
 export common
 
+when (NimMajor, NimMinor) < (1, 4):
+  {.push raises: [Defect].}
+else:
+  {.push raises: [].}
+
 logScope:
   topics = "tinyupnp"
 

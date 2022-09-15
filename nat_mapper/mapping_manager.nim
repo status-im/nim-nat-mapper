@@ -6,6 +6,11 @@ import pkg/[
 
 import ./tinyupnp
 
+when (NimMajor, NimMinor) < (1, 4):
+  {.push raises: [Defect].}
+else:
+  {.push raises: [].}
+
 logScope: topics = "nat_mapping_manager"
 
 type
