@@ -138,15 +138,22 @@ proc soapRequest(gateway: TUpnpGateway, actionName: string, args = initTable[str
   let request = generateSoapEnveloppe(actionName, gateway.serviceType, args)
   result = await postSoap(gateway.controlUri, request, gateway.serviceType & "#" & actionName)
 
-  try:
-    result.xmlTree = parseXml(result.body)["s:Body"]
-    if not isNil(result.xmlTree):
-      result.xmlTree = result.xmlTree[0]
+  result.xmlTree =
+    try:
+      parseXml(result.body)
+    except XmlError as exc:
+      trace "Cannot parse response XML", resp = result.body
+      return result
+    except Exception as exc:
+      #borken exception tracking on parseXml
+      doAssert false
+      nil
+  result.xmlTree = result.xmlTree["s:Body"]
+  if not isNil(result.xmlTree):
+    result.xmlTree = result.xmlTree[0]
 
-      for child in result.xmlTree:
-        result.response[child.tag.toLower()] = child.getStr()
-  except XmlError as exc:
-    trace "Cannot parse response XML", resp = result.body
+    for child in result.xmlTree:
+      result.response[child.tag.toLower()] = child.getStr()
   return result
 
 # UPNP
@@ -215,6 +222,10 @@ proc tryGatewayLocation(tupnp: TUpnpSession, location: Uri) {.async.} =
       except XmlError as exc:
         debug "Can't decode XML from location", err = exc.msg
         return
+      except Exception as exc:
+        #borken exception tracking on parseXml
+        doAssert false
+        nil
 
   for service in pageXml.getAllRecur("service"):
 
