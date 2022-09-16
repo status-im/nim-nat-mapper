@@ -170,6 +170,7 @@ proc addPortMapping*(tupnp: TUpnpSession, mapping: TUpnpPortMapping) {.async.} =
       "NewLeaseDuration": $mapping.leaseDuration.seconds,
        }.toTable()
     )
+  trace "Added port", res=res.body
 
 proc deletePortMapping*(tupnp: TUpnpSession, mapping: TUpnpPortMapping) {.async.} =
   debug "Deleting port mapping", mapping
@@ -180,6 +181,7 @@ proc deletePortMapping*(tupnp: TUpnpSession, mapping: TUpnpPortMapping) {.async.
       "NewProtocol": if mapping.protocol == Tcp: "TCP" else: "UDP",
        }.toTable()
     )
+  trace "Deleted port", res=res.body
 
 proc getAllMappings*(tupnp: TUpnpSession): Future[seq[TUpnpPortMapping]] {.async.} =
   debug "Getting all mappings"
@@ -197,6 +199,7 @@ proc getAllMappings*(tupnp: TUpnpSession): Future[seq[TUpnpPortMapping]] {.async
        description: res.response.getOrDefault("newportmappingdescription"),
        leaseDuration: parseInt(res.response.getOrDefault("newleaseduration")).seconds
     )
+  trace "All mappings", result
 
 proc getIps(gateway: TUpnpGateway): Future[(IpAddress, IpAddress)] {.async.} =
   let
@@ -269,7 +272,7 @@ proc tryGatewayLocation(tupnp: TUpnpSession, location: Uri) {.async.} =
     tupnp.publicIp = ips[1]
     gatewayCandidate.localIp = ips[0]
     info "Found suitable gateway", controlUri = gatewayCandidate.controlUri,
-      localIp = gatewayCandidate.localIp
+      localIp = gatewayCandidate.localIp, scpdurl = service["SCPDUrl"].getStr()
     tupnp.gateway = gatewayCandidate
     tupnp.gatewayFound.complete()
     return
